@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install .
           pip install pytest pytest-cov
       
       - name: Run tests
@@ -32,78 +32,74 @@ jobs:
           pytest tests/ --cov=src/sportsflow --cov-report=xml
         continue-on-error: false  
 
-  # build-and-push:
-  #   needs: test
-  #   runs-on: ubuntu-latest
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-  #   
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
-  #     
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v3
-  #     
-  #     - name: Log in to DockerHub
-  #       uses: docker/login-action@v3
-  #       with:
-  #         username: ${{ secrets.DOCKERHUB_USERNAME }}
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
-  #     
-  #     - name: Extract metadata
-  #       id: meta
-  #       uses: docker/metadata-action@v5
-  #       with:
-  #         images: ${{ env.DOCKERHUB_REPO }}
-  #         tags: |
-  #           type=ref,event=branch
-  #           type=sha,prefix={{branch}}-
-  #           type=raw,value=latest,enable={{is_default_branch}}
-  #     
-  #     - name: Build and push Docker image
-  #       uses: docker/build-push-action@v5
-  #       with:
-  #         context: .
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
-  #         labels: ${{ steps.meta.outputs.labels }}
-  #         cache-from: type=gha
-  #         cache-to: type=gha,mode=max
-  #     
-  #     - name: Image digest
-  #       run: echo ${{ steps.build.outputs.digest }}
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKERHUB_REPO }}
+          tags: |
+            type=sha,prefix=sportsflow-
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Image digest
+        run: echo ${{ steps.build.outputs.digest }}
 
-  # Update ArgoCD manifests
-  # update-manifests:
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
-  #   if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
-  #   
-  #   steps:
-  #     - name: Checkout GitOps repo
-  #       uses: actions/checkout@v4
-  #       with:
-  #         repository: juicebox-platform/k8s-manifests
-  #         token: ${{ secrets.GITOPS_TOKEN }}
-  #         path: k8s-manifests
-  #     
-  #     - name: Update image tag in Helm values
-  #       run: |
-  #         cd k8s-manifests
-  #         
-  #         # Extract the branch name
-  #         BRANCH_NAME=${GITHUB_REF#refs/heads/}
-  #         IMAGE_TAG="${BRANCH_NAME}-${GITHUB_SHA::7}"
-  #         
-  #         # Update the image tag in your Helm values file
-  #         sed -i "s|repository: reecetec/juicebox|repository: reecetec/juicebox|g" airflow/values.yaml
-  #         sed -i "s|tag: .*|tag: ${IMAGE_TAG}|g" airflow/values.yaml
-  #         
-  #         # Also update the Kubernetes executor image
-  #         sed -i "s|AIRFLOW__KUBERNETES__WORKER_CONTAINER_TAG: .*|AIRFLOW__KUBERNETES__WORKER_CONTAINER_TAG: \"${IMAGE_TAG}\"|g" airflow/values.yaml
-  #         
-  #         git config --local user.email "action@github.com"
-  #         git config --local user.name "GitHub Action"
-  #         git add .
-  #         git commit -m "Update airflow image to ${IMAGE_TAG}" || exit 0
-  #         git push
+# Update airflow helm chart to use the new image tag
+# update-manifests:
+#   needs: build-and-push
+#   runs-on: ubuntu-latest
+#   if: github.ref == 'refs/heads/main'
+#   
+#   steps:
+#     - name: Checkout GitOps repo
+#       uses: actions/checkout@v4
+#       with:
+#         repository: juicebox-platform/k8s-manifests
+#         token: ${{ secrets.GITOPS_TOKEN }}
+#         path: k8s-manifests
+#     
+#     - name: Update image tag in Helm values
+#       run: |
+#         cd k8s-manifests
+#         
+#         # This now matches the tag format from the build job
+#         IMAGE_TAG="sportsflow-${GITHUB_SHA::7}"
+#         
+#         # Update the image tag in your Helm values file
+#         # This assumes you are using sed. You might need to adjust for your file structure.
+#         sed -i "s|tag: .*|tag: ${IMAGE_TAG}|g" path/to/your/values.yaml
+#         
+#         git config --local user.email "action@github.com"
+#         git config --local user.name "GitHub Action"
+#         git add .
+#         git commit -m "Update image to ${{ env.DOCKER_IMAGE }}:${IMAGE_TAG}" || exit 0
+#         git push
+
