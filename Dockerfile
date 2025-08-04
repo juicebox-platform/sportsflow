@@ -10,7 +10,8 @@ USER airflow
 
 COPY --chown=airflow:root src/ /tmp/sportsflow/src/
 COPY --chown=airflow:root pyproject.toml /tmp/sportsflow/
+COPY --chown=airflow:root README.md /tmp/sportsflow/
 
-RUN pip install /tmp/sportsflow/ && rm -rf /tmp/sportsflow/
+RUN pip install /tmp/sportsflow/ 
 
 WORKDIR /opt/airflow
