@@ -66,7 +66,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
       
       - name: Image digest
         run: echo ${{ steps.build.outputs.digest }}
@@ -81,7 +81,7 @@ jobs:
 #     - name: Checkout GitOps repo
 #       uses: actions/checkout@v4
 #       with:
-#         repository: juicebox-platform/k8s-manifests
+#         repository: juicebox-platform/gitops
 #         token: ${{ secrets.GITOPS_TOKEN }}
 #         path: k8s-manifests
 #     
