@@ -1,5 +1,7 @@
 from airflow import DAG
-from airflow.providers.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.pod import (
+    KubernetesPodOperator,
+)
 from datetime import datetime, timedelta
 
 default_args = {
