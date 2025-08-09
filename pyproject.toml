@@ -7,7 +7,9 @@ authors = [
     { name = "reece", email = "reece.tec@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "clickhouse-connect>=0.8.18",
+]
 
 [project.optional-dependencies]
 mlb = [
