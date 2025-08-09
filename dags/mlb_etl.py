@@ -13,7 +13,7 @@ default_args = {
 dag = DAG(
     "mlb_daily_etl",
     default_args=default_args,
-    schedule_interval="0 6 * * *",  # 6 AM daily
+    schedule="0 6 * * *",
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=["mlb"],
